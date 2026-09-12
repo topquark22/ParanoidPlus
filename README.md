@@ -23,7 +23,8 @@ ParanoidPlus has three monitoring scripts:
 | --- | --- |
 | `Check-RemoteLogons.ps1` | Manual report of successful Type 3 and Type 10 logons since the last reboot. |
 | `Alert-RemoteLogon.ps1` | Invoked by Task Scheduler when a matching Event 4624 occurs; produces an audible warning and desktop dialog. |
-| `Log-ServiceInstall.ps1` | Invoked on Event 7045; logs every service installation and alerts only when the installation meets suspicious heuristics. |
+| `Log-ServiceInstall.ps1` | Invoked on Event 7045; logs every service installation and alerts only when the installation meets suspicious heuristics and is not whitelisted. |
+| `ServiceWhitelist.txt` | User-editable service-name whitelist; matching services remain logged but do not alert. |
 
 Two scheduled tasks are created:
 
@@ -49,6 +50,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 - creates `%LOCALAPPDATA%\ParanoidPlus`;
 - copies the monitoring scripts there;
+- creates `ServiceWhitelist.txt` on first install without overwriting later local edits;
 - adds that directory to the user's persistent `PATH`;
 - sets the current user's PowerShell execution policy to `RemoteSigned`;
 - creates the `Remote Logon Alert` and `Service Install Logger` tasks;
@@ -128,6 +130,7 @@ Every log entry contains:
 - timestamp;
 - `Suspicious: Yes` or `Suspicious: No`;
 - the reasons for the classification;
+- whether the service was whitelisted and the matching pattern;
 - service name;
 - service file/path;
 - the original Event 7045 message.
@@ -144,15 +147,32 @@ A `Suspicious: Yes` result means **inspect this event**. It does not prove malwa
 
 Suspicious events produce an audible warning and a desktop dialog. Ordinary service installations are logged without a popup.
 
-### WireGuard exclusion
+### Service alert whitelist
 
-WireGuard for Windows may install tunnel services when tunnels are activated. These service names match:
+Alert exclusions are kept outside the PowerShell script in:
+
+```text
+%LOCALAPPDATA%\ParanoidPlus\ServiceWhitelist.txt
+```
+
+The file contains one PowerShell wildcard pattern per line, matched against the Windows service name. Blank lines and lines beginning with `#` are ignored. A matching service is **still written to `ServiceInstall.log`**, including the matched whitelist pattern, but it does not produce the suspicious-service popup.
+
+The default whitelist contains:
 
 ```text
 WireGuardTunnel$*
 ```
 
-Those events are still logged, but the pattern is excluded from the suspicious-service popup. The exclusion is independent of the tunnel name.
+WireGuard for Windows may install `WireGuardTunnel$<tunnel-name>` services as tunnels are activated. Keeping this pattern in the external whitelist avoids hard-coding WireGuard as a special case in `Log-ServiceInstall.ps1`.
+
+To add another known service family, edit `ServiceWhitelist.txt`, for example:
+
+```text
+# Known internal service
+MyKnownService*
+```
+
+Changes take effect the next time the service-install logger runs; no task reinstall is required.
 
 ### Testing the suspicious-service alert
 
@@ -232,6 +252,7 @@ Alert-RemoteLogon.ps1
 Check-RemoteLogons.ps1
 Install.ps1
 Log-ServiceInstall.ps1
+ServiceWhitelist.txt
 Uninstall.ps1
 README.md
 ```

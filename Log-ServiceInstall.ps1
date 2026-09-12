@@ -1,6 +1,14 @@
 $installDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $logFile = Join-Path $installDir "ServiceInstall.log"
 $idFile = Join-Path $installDir "ServiceInstall.lastid"
+$whitelistFile = Join-Path $installDir "ServiceWhitelist.txt"
+
+$whitelist = @()
+if (Test-Path $whitelistFile) {
+    $whitelist = @(Get-Content $whitelistFile |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -and -not $_.StartsWith('#') })
+}
 
 $lastId = 0
 if (Test-Path $idFile) {
@@ -30,6 +38,14 @@ foreach ($event in $events) {
 
     if ($message -match 'Service File Name:\s+(.+)') {
         $servicePath = $matches[1].Trim()
+    }
+
+    $whitelistMatch = $null
+    foreach ($pattern in $whitelist) {
+        if ($serviceName -like $pattern) {
+            $whitelistMatch = $pattern
+            break
+        }
     }
 
     if ($servicePath -match '\\Users\\|\\AppData\\|\\Temp\\|\\Downloads\\') {
@@ -69,6 +85,8 @@ EventRecordID: $($event.RecordId)
 Time: $($event.TimeCreated)
 Suspicious: $(if ($suspicious) { 'Yes' } else { 'No' })
 Reasons: $(if ($reasons.Count) { $reasons -join '; ' } else { 'None' })
+Whitelisted: $(if ($whitelistMatch) { 'Yes' } else { 'No' })
+Whitelist Match: $(if ($whitelistMatch) { $whitelistMatch } else { 'None' })
 
 Service Name: $serviceName
 Service File: $servicePath
@@ -78,9 +96,7 @@ $($event.Message)
 "@
     Add-Content -Path $logFile -Value $entry
 
-    # WireGuard for Windows creates WireGuardTunnel$<tunnel-name> services
-    # during tunnel activation. Log them, but do not alert on them.
-    if ($suspicious -and $serviceName -notlike 'WireGuardTunnel$*') {
+    if ($suspicious -and -not $whitelistMatch) {
         Add-Type -AssemblyName PresentationFramework
 
         1..3 | ForEach-Object {

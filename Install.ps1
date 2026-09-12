@@ -19,6 +19,11 @@ foreach ($name in $scriptNames) {
     Copy-Item (Join-Path $sourceDir $name) (Join-Path $installDir $name) -Force
 }
 
+$whitelistPath = Join-Path $installDir 'ServiceWhitelist.txt'
+if (-not (Test-Path $whitelistPath)) {
+    Copy-Item (Join-Path $sourceDir 'ServiceWhitelist.txt') $whitelistPath
+}
+
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
 
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
@@ -120,6 +125,7 @@ Register-EventTask `
 Write-Host
 Write-Host 'Installed:'
 Write-Host "  $installDir\Check-RemoteLogons.ps1   (manual check; no scheduled task)"
+Write-Host "  $installDir\ServiceWhitelist.txt     (service alert whitelist)"
 Write-Host '  Scheduled task: Remote Logon Alert'
 Write-Host '  Scheduled task: Service Install Logger'
 Write-Host
