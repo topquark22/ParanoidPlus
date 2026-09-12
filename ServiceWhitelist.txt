@@ -1,0 +1,4 @@
+# ParanoidPlus service alert whitelist
+# One PowerShell wildcard pattern per line, matched against the service name.
+
+WireGuardTunnel$*

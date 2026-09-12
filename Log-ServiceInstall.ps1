@@ -1,7 +1,12 @@
 $installDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$logFile = Join-Path $installDir "ServiceInstall.log"
-$idFile = Join-Path $installDir "ServiceInstall.lastid"
+$logDir = Join-Path $env:LOCALAPPDATA 'ParanoidPlus\Logs'
+$stateDir = Join-Path $env:LOCALAPPDATA 'ParanoidPlus\State'
+$logFile = Join-Path $logDir "ServiceInstall.log"
+$idFile = Join-Path $stateDir "ServiceInstall.lastid"
 $whitelistFile = Join-Path $installDir "ServiceWhitelist.txt"
+
+New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 
 $whitelist = @()
 if (Test-Path $whitelistFile) {

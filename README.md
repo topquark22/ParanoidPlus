@@ -9,13 +9,20 @@ It is intentionally simple. ParanoidPlus uses Windows Event Logs, PowerShell, an
 
 ## What it installs
 
-All scripts, logs, and state files live under:
+Scripts and configuration live under:
 
 ```text
 %LOCALAPPDATA%\ParanoidPlus
 ```
 
-The installer adds that directory to the current user's `PATH`.
+Runtime data is kept in dedicated subdirectories:
+
+```text
+%LOCALAPPDATA%\ParanoidPlus\Logs
+%LOCALAPPDATA%\ParanoidPlus\State
+```
+
+The installer adds the script directory to the current user's `PATH`.
 
 ParanoidPlus has three monitoring scripts:
 
@@ -48,7 +55,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 `Install.ps1`:
 
-- creates `%LOCALAPPDATA%\ParanoidPlus`;
+- creates `%LOCALAPPDATA%\ParanoidPlus` plus `Logs` and `State` subdirectories;
 - copies the monitoring scripts there;
 - creates `ServiceWhitelist.txt` on first install without overwriting later local edits;
 - adds that directory to the user's persistent `PATH`;
@@ -115,13 +122,13 @@ Windows System Event **7045** records service installation.
 `Log-ServiceInstall.ps1` records each new 7045 event in:
 
 ```text
-%LOCALAPPDATA%\ParanoidPlus\ServiceInstall.log
+%LOCALAPPDATA%\ParanoidPlus\Logs\ServiceInstall.log
 ```
 
 It also keeps the last processed Event Record ID in:
 
 ```text
-%LOCALAPPDATA%\ParanoidPlus\ServiceInstall.lastid
+%LOCALAPPDATA%\ParanoidPlus\State\ServiceInstall.lastid
 ```
 
 Every log entry contains:
