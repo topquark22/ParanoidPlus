@@ -16,7 +16,8 @@ New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 $scriptNames = @(
     'Check-RemoteLogons.ps1',
     'Alert-RemoteLogon.ps1',
-    'Log-ServiceInstall.ps1'
+    'Log-ServiceInstall.ps1',
+    'Run-Hidden.vbs'
 )
 
 foreach ($name in $scriptNames) {
@@ -51,6 +52,7 @@ function Register-EventTask {
         [Parameter(Mandatory)] [ValidateSet('IgnoreNew','Parallel')] [string] $MultipleInstancesPolicy
     )
 
+    $escapedLauncherPath = [System.Security.SecurityElement]::Escape((Join-Path $installDir 'Run-Hidden.vbs'))
     $escapedScriptPath = [System.Security.SecurityElement]::Escape($ScriptPath)
     $escapedSubscription = [System.Security.SecurityElement]::Escape($Subscription)
     $escapedUserId = [System.Security.SecurityElement]::Escape($userId)
@@ -96,8 +98,8 @@ function Register-EventTask {
   </Triggers>
   <Actions Context="Author">
     <Exec>
-      <Command>powershell.exe</Command>
-      <Arguments>-NoProfile -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File &quot;$escapedScriptPath&quot;</Arguments>
+      <Command>wscript.exe</Command>
+      <Arguments>//B &quot;$escapedLauncherPath&quot; &quot;$escapedScriptPath&quot;</Arguments>
     </Exec>
   </Actions>
 </Task>
