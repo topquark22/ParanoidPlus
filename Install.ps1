@@ -29,8 +29,6 @@ if (-not (Test-Path $whitelistPath)) {
     Copy-Item (Join-Path $sourceDir 'ServiceWhitelist.txt') $whitelistPath
 }
 
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
-
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 $pathEntries = @($userPath -split ';' | Where-Object { $_ })
 if ($pathEntries -notcontains $installDir) {
