@@ -263,5 +263,3 @@ ServiceWhitelist.txt
 Uninstall.ps1
 README.md
 ```
-
-Additional design and investigation notes are available in the `docs` directory.
