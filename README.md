@@ -28,7 +28,7 @@ ParanoidPlus has three monitoring scripts:
 
 | File | Purpose |
 | --- | --- |
-| `Check-RemoteLogons.ps1` | Manual report of successful Type 3 and Type 10 logons since the last reboot. |
+| `Check-RemoteLogons.ps1` | Manual report of successful Type 3 and Type 10 logons since the last reboot, or all retained logons with `-All`. |
 | `Alert-RemoteLogon.ps1` | Invoked by Task Scheduler when a matching Event 4624 occurs; logs new matching events and produces an audible warning and desktop dialog. |
 | `Log-ServiceInstall.ps1` | Invoked on Event 7045; logs every service installation and alerts only when the installation meets suspicious heuristics and is not whitelisted. |
 | `ServiceWhitelist.txt` | User-editable service-name whitelist; matching services remain logged but do not alert. |
@@ -102,7 +102,13 @@ For a manual check at any time:
 Check-RemoteLogons.ps1
 ```
 
-The script automatically limits its report to events since the most recent Windows boot.
+By default, the script limits its report to events since the most recent Windows boot. To search all successful Type 3 and Type 10 logons still retained in the Windows Security event log, including those from before the last reboot:
+
+```powershell
+Check-RemoteLogons.ps1 -All
+```
+
+The `-All` switch does not recover events that Windows has already overwritten or cleared. Both modes filter by event ID and logon type within the Windows Event Log query.
 
 ### Testing the Type 3 alert
 

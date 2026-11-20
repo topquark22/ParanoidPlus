@@ -1,14 +1,32 @@
-$bootTime = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+param(
+    [switch] $All
+)
 
-Write-Host "Last boot: $bootTime"
-Write-Host "Checking successful Type 3 and Type 10 logons since boot..."
+$timeFilter = ''
+if ($All) {
+    Write-Host "Checking successful Type 3 and Type 10 logons in the entire retained Security log..."
+}
+else {
+    $bootTime = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+    Write-Host "Last boot: $bootTime"
+    Write-Host "Checking successful Type 3 and Type 10 logons since boot..."
+
+    $sinceUtc = $bootTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+    $timeFilter = " and TimeCreated[@SystemTime >= '$sinceUtc']"
+}
 Write-Host
 
-$events = Get-WinEvent -FilterHashtable @{
-    LogName   = 'Security'
-    Id        = 4624
-    StartTime = $bootTime
-} -ErrorAction Stop
+$xpath = "*[System[EventID=4624$timeFilter] and EventData[(Data[@Name='LogonType']='3' or Data[@Name='LogonType']='10')]]"
+
+$events = @()
+try {
+    $events = @(Get-WinEvent -LogName Security -FilterXPath $xpath -ErrorAction Stop)
+}
+catch {
+    if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') {
+        throw
+    }
+}
 
 $results = foreach ($event in $events) {
     $xml = [xml]$event.ToXml()
@@ -45,5 +63,10 @@ if ($results) {
         Format-Table -AutoSize
 }
 else {
-    Write-Host "No Type 3 or Type 10 successful logons since the last reboot."
+    if ($All) {
+        Write-Host "No Type 3 or Type 10 successful logons in the retained Security log."
+    }
+    else {
+        Write-Host "No Type 3 or Type 10 successful logons since the last reboot."
+    }
 }
