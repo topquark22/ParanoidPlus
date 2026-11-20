@@ -108,7 +108,7 @@ By default, the script limits its report to events since the most recent Windows
 Check-RemoteLogons.ps1 -All
 ```
 
-The `-All` switch does not recover events that Windows has already overwritten or cleared. Both modes filter by event ID and logon type within the Windows Event Log query.
+The `-All` switch reports the timestamp of the oldest retained Security event, but does not recover events that Windows has already overwritten or cleared. Both modes filter by event ID and logon type within the Windows Event Log query.
 
 ### Testing the Type 3 alert
 

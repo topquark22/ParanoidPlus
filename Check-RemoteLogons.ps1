@@ -4,7 +4,8 @@ param(
 
 $timeFilter = ''
 if ($All) {
-    Write-Host "Checking successful Type 3 and Type 10 logons in the entire retained Security log..."
+    $firstEvent = Get-WinEvent -LogName Security -Oldest -MaxEvents 1 -ErrorAction Stop
+    Write-Host "Checking successful Type 3 and Type 10 logons since $($firstEvent.TimeCreated) (oldest retained Security event)..."
 }
 else {
     $bootTime = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
