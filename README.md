@@ -80,7 +80,7 @@ The real-time task uses an event subscription equivalent to:
 *[System[EventID=4624] and EventData[Data[@Name='LogonType']='3' or Data[@Name='LogonType']='10']]
 ```
 
-When one occurs, `Alert-RemoteLogon.ps1` displays information such as the time, account, source address, source port, and logon type.
+When one occurs, `Alert-RemoteLogon.ps1` sounds three 1200 Hz beeps and displays a topmost warning dialog with the time, account, source address, source port, and logon type. If the sound or popup raises an error, the script records it in `Logs\RemoteLogon.alert-errors.log`; a visible dialog still requires an interactive Windows desktop.
 
 The same task writes **each new matching event** to:
 

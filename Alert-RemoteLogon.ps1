@@ -108,17 +108,40 @@ Source IP: $($event.SourceIP)
 Source Port: $($event.SourcePort)
 "@
 
-    Add-Type -AssemblyName PresentationFramework
+    $alertErrorFile = Join-Path $logDir 'RemoteLogon.alert-errors.log'
 
-    1..3 | ForEach-Object {
-        [System.Media.SystemSounds]::Hand.Play()
-        Start-Sleep -Milliseconds 400
+    try {
+        1..3 | ForEach-Object {
+            [Console]::Beep(1200, 500)
+            Start-Sleep -Milliseconds 200
+        }
+    }
+    catch {
+        Add-Content -Path $alertErrorFile -Value "$(Get-Date -Format o) Sound failed: $_" -ErrorAction SilentlyContinue
     }
 
-    [System.Windows.MessageBox]::Show(
-        $message,
-        'Remote Logon Alert',
-        'OK',
-        'Warning'
-    )
+    try {
+        # Request a topmost warning on the interactive desktop.
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class ParanoidPlusAlert {
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int MessageBox(IntPtr window, string text, string caption, uint flags);
+}
+'@
+        # MB_ICONWARNING | MB_SETFOREGROUND | MB_TOPMOST
+        $result = [ParanoidPlusAlert]::MessageBox(
+            [IntPtr]::Zero,
+            $message,
+            'Remote Logon Alert',
+            0x00050030
+        )
+        if ($result -eq 0) {
+            throw 'Windows MessageBox returned a failure result.'
+        }
+    }
+    catch {
+        Add-Content -Path $alertErrorFile -Value "$(Get-Date -Format o) Popup failed: $_" -ErrorAction SilentlyContinue
+    }
 }
