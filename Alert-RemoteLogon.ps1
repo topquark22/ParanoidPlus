@@ -1,21 +1,82 @@
-$since = (Get-Date).AddMinutes(-5)
+$ErrorActionPreference = 'Stop'
+$logDir = Join-Path $env:LOCALAPPDATA 'ParanoidPlus\Logs'
+$stateDir = Join-Path $env:LOCALAPPDATA 'ParanoidPlus\State'
+$logFile = Join-Path $logDir 'RemoteLogon.log'
+$idFile = Join-Path $stateDir 'RemoteLogon.lastid'
 
-$event = Get-WinEvent -FilterHashtable @{
-    LogName   = 'Security'
-    Id        = 4624
-    StartTime = $since
-} -ErrorAction Stop |
-ForEach-Object {
-    $xml = [xml]$_.ToXml()
-    $data = @{}
+New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 
-    foreach ($item in $xml.Event.EventData.Data) {
-        $data[$item.Name] = $item.'#text'
+# Task Scheduler may launch this script in parallel for several nearby events.
+$mutexName = 'Global\ParanoidPlusRemoteLogon-' + [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$mutex = [System.Threading.Mutex]::new($false, $mutexName)
+$hasMutex = $false
+$event = $null
+
+try {
+    try {
+        $hasMutex = $mutex.WaitOne()
+    }
+    catch [System.Threading.AbandonedMutexException] {
+        $hasMutex = $true
     }
 
-    if ($data.LogonType -in '3', '10') {
-        [pscustomobject]@{
-            Time       = $_.TimeCreated
+    $lastId = 0
+    if (Test-Path $idFile) {
+        $lastId = [long](Get-Content $idFile)
+    }
+
+    # The Security log may have been cleared, resetting its record IDs.
+    $latestRecord = Get-WinEvent -LogName 'Security' -MaxEvents 1
+    if ($latestRecord.RecordId -lt $lastId) {
+        $lastId = 0
+    }
+
+    $xpath = "*[System[(EventID=4624) and (EventRecordID > $lastId)] and EventData[(Data[@Name='LogonType']='3' or Data[@Name='LogonType']='10')]]"
+    $records = @()
+    try {
+        $records = @(Get-WinEvent -LogName 'Security' -FilterXPath $xpath -ErrorAction Stop | Sort-Object RecordId)
+    }
+    catch {
+        if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') {
+            throw
+        }
+    }
+
+    foreach ($record in $records) {
+        $xml = [xml]$record.ToXml()
+        $data = @{}
+
+        foreach ($item in $xml.Event.EventData.Data) {
+            $data[$item.Name] = $item.'#text'
+        }
+
+        if ($data.LogonType -notin '3', '10') {
+            continue
+        }
+
+        $type = switch ($data.LogonType) {
+            '3'  { 'Network' }
+            '10' { 'RemoteInteractive / RDP' }
+        }
+
+        $entry = @"
+============================================================
+EventRecordID: $($record.RecordId)
+Time: $($record.TimeCreated)
+Type: $($data.LogonType) - $type
+User: $($data.TargetDomainName)\$($data.TargetUserName)
+Source IP: $($data.IpAddress)
+Source Port: $($data.IpPort)
+Workstation: $($data.WorkstationName)
+Authentication Package: $($data.AuthenticationPackageName)
+
+"@
+        Add-Content -Path $logFile -Value $entry -ErrorAction Stop
+        Set-Content -Path $idFile -Value $record.RecordId -ErrorAction Stop
+
+        $event = [pscustomobject]@{
+            Time       = $record.TimeCreated
             LogonType  = $data.LogonType
             User       = $data.TargetUserName
             Domain     = $data.TargetDomainName
@@ -23,9 +84,13 @@ ForEach-Object {
             SourcePort = $data.IpPort
         }
     }
-} |
-Sort-Object Time -Descending |
-Select-Object -First 1
+}
+finally {
+    if ($hasMutex) {
+        $mutex.ReleaseMutex()
+    }
+    $mutex.Dispose()
+}
 
 if ($event) {
     $type = switch ($event.LogonType) {

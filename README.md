@@ -29,7 +29,7 @@ ParanoidPlus has three monitoring scripts:
 | File | Purpose |
 | --- | --- |
 | `Check-RemoteLogons.ps1` | Manual report of successful Type 3 and Type 10 logons since the last reboot. |
-| `Alert-RemoteLogon.ps1` | Invoked by Task Scheduler when a matching Event 4624 occurs; produces an audible warning and desktop dialog. |
+| `Alert-RemoteLogon.ps1` | Invoked by Task Scheduler when a matching Event 4624 occurs; logs new matching events and produces an audible warning and desktop dialog. |
 | `Log-ServiceInstall.ps1` | Invoked on Event 7045; logs every service installation and alerts only when the installation meets suspicious heuristics and is not whitelisted. |
 | `ServiceWhitelist.txt` | User-editable service-name whitelist; matching services remain logged but do not alert. |
 
@@ -56,6 +56,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 `Install.ps1`:
 
 - creates `%LOCALAPPDATA%\ParanoidPlus` plus `Logs` and `State` subdirectories;
+- initializes the remote-logon cursor on first install (without overwriting it on upgrades);
 - copies the monitoring scripts there;
 - creates `ServiceWhitelist.txt` on first install without overwriting later local edits;
 - adds that directory to the user's persistent `PATH`;
@@ -81,6 +82,20 @@ The real-time task uses an event subscription equivalent to:
 
 When one occurs, `Alert-RemoteLogon.ps1` displays information such as the time, account, source address, source port, and logon type.
 
+The same task writes **each new matching event** to:
+
+```text
+%LOCALAPPDATA%\ParanoidPlus\Logs\RemoteLogon.log
+```
+
+Each entry includes the Event Record ID, timestamp, logon type, account, source IP and port, workstation, and authentication package. The last successfully logged Event Record ID is stored in:
+
+```text
+%LOCALAPPDATA%\ParanoidPlus\State\RemoteLogon.lastid
+```
+
+The cursor and a per-user mutex prevent overlapping task instances from recording the same event repeatedly. A popup shows the latest newly processed logon; all matching events are logged. On first installation, the cursor starts at the current Security log position, so earlier logons are not backfilled. Reinstallation preserves the existing cursor and log. Logon events that have already expired from the Windows Security log cannot be recovered.
+
 For a manual check at any time:
 
 ```powershell
@@ -105,7 +120,7 @@ Then create a fresh connection:
 net use \\localhost\IPC$ /user:%COMPUTERNAME%\%USERNAME% *
 ```
 
-A fresh Type 3 logon should be recorded and the alert task should run.
+A fresh Type 3 logon should be recorded in `Logs\RemoteLogon.log` and the alert task should run.
 
 Clean up afterward:
 
@@ -248,6 +263,7 @@ It can tell you about the Windows events it watches; it cannot prove that a mach
 - malware already executing in an existing user session does not necessarily require a new Type 3 or Type 10 logon;
 - software can persist through mechanisms other than service installation;
 - Windows auditing must actually record an event for an event-driven monitor to see it;
+- remote-logon logging requires the interactive user's event-triggered task to run before the corresponding Windows Security records expire;
 - heuristic service classification can produce both false positives and false negatives.
 
 Use the alerts as evidence to investigate, not as a substitute for normal endpoint security, backups, patching, and account protection.

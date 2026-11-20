@@ -13,6 +13,13 @@ New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
 
+$remoteIdFile = Join-Path $stateDir 'RemoteLogon.lastid'
+if (-not (Test-Path $remoteIdFile)) {
+    # Begin logging new remote logons; do not backfill the existing Security log.
+    $latestSecurityEvent = Get-WinEvent -LogName 'Security' -MaxEvents 1 -ErrorAction Stop
+    Set-Content -Path $remoteIdFile -Value $latestSecurityEvent.RecordId
+}
+
 $scriptNames = @(
     'Check-RemoteLogons.ps1',
     'Alert-RemoteLogon.ps1',
@@ -130,6 +137,7 @@ Write-Host
 Write-Host 'Installed:'
 Write-Host "  $installDir\Check-RemoteLogons.ps1   (manual check; no scheduled task)"
 Write-Host "  $installDir\ServiceWhitelist.txt     (service alert whitelist)"
+Write-Host "  $logDir\RemoteLogon.log              (remote logon log)"
 Write-Host "  $logDir\ServiceInstall.log           (service installation log)"
 Write-Host '  Scheduled task: Remote Logon Alert'
 Write-Host '  Scheduled task: Service Install Logger'
