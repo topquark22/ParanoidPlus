@@ -197,7 +197,7 @@ The file contains one PowerShell wildcard pattern per line, matched against the 
 For WireGuard, match the service name exactly as Windows Event 7045 reports it. On current WireGuard for Windows installations, the event uses a human-readable name such as:
 
 ```text
-WireGuard Tunnel: snarkypuss
+WireGuard Tunnel: tunnelName
 ```
 
 so the appropriate wildcard rule is:
