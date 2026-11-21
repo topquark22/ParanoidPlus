@@ -118,12 +118,29 @@ Reasons:
 $($reasons -join "`n")
 "@
 
-        [System.Windows.MessageBox]::Show(
-            $alertMessage,
-            'Suspicious Service Installation',
-            'OK',
-            'Warning'
-        )
+        $owner = New-Object System.Windows.Window
+        $owner.Width = 1
+        $owner.Height = 1
+        $owner.WindowStyle = 'None'
+        $owner.ShowInTaskbar = $false
+        $owner.Topmost = $true
+        $owner.Opacity = 0
+        $owner.WindowStartupLocation = 'CenterScreen'
+        $owner.Show()
+        $owner.Activate() | Out-Null
+
+        try {
+            [System.Windows.MessageBox]::Show(
+                $owner,
+                $alertMessage,
+                'Suspicious Service Installation',
+                'OK',
+                'Warning'
+            )
+        }
+        finally {
+            $owner.Close()
+        }
     }
 
     Set-Content -Path $idFile -Value $event.RecordId
