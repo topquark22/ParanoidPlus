@@ -194,13 +194,19 @@ The repository copy of `ServiceWhitelist.txt` is used only to seed the file on f
 
 The file contains one PowerShell wildcard pattern per line, matched against the Windows service name. Blank lines and lines beginning with `#` are ignored. A matching service is skipped entirely: it is not written to `ServiceInstall.log` and does not produce the suspicious-service popup.
 
-The default whitelist contains:
+For WireGuard, match the service name exactly as Windows Event 7045 reports it. On current WireGuard for Windows installations, the event uses a human-readable name such as:
 
 ```text
-WireGuardTunnel$*
+WireGuard Tunnel: snarkypuss
 ```
 
-WireGuard for Windows may install `WireGuardTunnel$<tunnel-name>` services as tunnels are activated. Keeping this pattern in the external whitelist avoids hard-coding WireGuard as a special case in `Log-ServiceInstall.ps1`.
+so the appropriate wildcard rule is:
+
+```text
+WireGuard Tunnel:*
+```
+
+Do not use `WireGuardTunnel$*` for this purpose. That resembles WireGuard's internal service identifier, but ParanoidPlus matches the `Service Name:` field from Event 7045, where the observed name is `WireGuard Tunnel: <tunnel-name>`.
 
 To add another known service family, edit `ServiceWhitelist.txt`, for example:
 
