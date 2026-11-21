@@ -190,6 +190,8 @@ Alert exclusions are kept outside the PowerShell script in:
 %LOCALAPPDATA%\ParanoidPlus\ServiceWhitelist.txt
 ```
 
+The repository copy of `ServiceWhitelist.txt` is used only to seed the file on first installation. After that, the installed whitelist is entirely under user-administrator control: installation, reinstallation, and upgrades do not overwrite it or merge repository defaults into it. Changes to the repository copy therefore do not propagate to an existing installation.
+
 The file contains one PowerShell wildcard pattern per line, matched against the Windows service name. Blank lines and lines beginning with `#` are ignored. A matching service is skipped entirely: it is not written to `ServiceInstall.log` and does not produce the suspicious-service popup.
 
 The default whitelist contains:
