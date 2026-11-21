@@ -104,10 +104,8 @@ $($event.Message)
     if ($suspicious -and -not $whitelistMatch) {
         Add-Type -AssemblyName PresentationFramework
 
-        1..3 | ForEach-Object {
-            [System.Media.SystemSounds]::Hand.Play()
-            Start-Sleep -Milliseconds 400
-        }
+        [Console]::Beep(1200, 500)
+        [Console]::Beep(700, 500)
 
         $alertMessage = @"
 SUSPICIOUS SERVICE INSTALLED
@@ -120,7 +118,6 @@ Reasons:
 $($reasons -join "`n")
 "@
 
-        [Console]::Beep(1200, 500)
         [System.Windows.MessageBox]::Show(
             $alertMessage,
             'Suspicious Service Installation',
