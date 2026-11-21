@@ -8,7 +8,7 @@ Write-Host "Creating a fresh localhost SMB connection as $user"
 Write-Host 'net.exe will prompt for the account password; this script does not read or store it.'
 Write-Host
 
-& net.exe use $connection /delete /y 2>$null | Out-Null
+& cmd.exe /d /c "net use `"$connection`" /delete /y >nul 2>&1" | Out-Null
 
 try {
     & net.exe use $connection $userArgument '*'
@@ -22,7 +22,7 @@ try {
     Start-Sleep -Seconds 2
 }
 finally {
-    & net.exe use $connection /delete /y 2>$null | Out-Null
+    & cmd.exe /d /c "net use `"$connection`" /delete /y >nul 2>&1" | Out-Null
 }
 
 Write-Host 'Test cleanup complete.'
