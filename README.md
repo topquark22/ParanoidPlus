@@ -30,8 +30,8 @@ ParanoidPlus has three monitoring scripts:
 | --- | --- |
 | `Check-RemoteLogons.ps1` | Manual report of successful Type 3 and Type 10 logons since the last reboot, or all retained logons with `-All`. |
 | `Alert-RemoteLogon.ps1` | Invoked by Task Scheduler when a matching Event 4624 occurs; logs new matching events and produces an audible warning and desktop dialog. |
-| `Log-ServiceInstall.ps1` | Invoked on Event 7045; logs every service installation and alerts only when the installation meets suspicious heuristics and is not whitelisted. |
-| `ServiceWhitelist.txt` | User-editable service-name whitelist; matching services remain logged but do not alert. |
+| `Log-ServiceInstall.ps1` | Invoked on Event 7045; skips whitelisted services, logs other service installations, and alerts when an installation meets suspicious heuristics. |
+| `ServiceWhitelist.txt` | User-editable service-name whitelist; matching services are skipped entirely. |
 
 Two scheduled tasks are created:
 
@@ -148,7 +148,7 @@ Windows may reuse an existing SMB session, so deleting the old mapping first is 
 
 Windows System Event **7045** records service installation.
 
-`Log-ServiceInstall.ps1` records each new 7045 event in:
+`Log-ServiceInstall.ps1` records each new non-whitelisted 7045 event in:
 
 ```text
 %LOCALAPPDATA%\ParanoidPlus\Logs\ServiceInstall.log
@@ -166,7 +166,6 @@ Every log entry contains:
 - timestamp;
 - `Suspicious: Yes` or `Suspicious: No`;
 - the reasons for the classification;
-- whether the service was whitelisted and the matching pattern;
 - service name;
 - service file/path;
 - the original Event 7045 message.
@@ -191,7 +190,7 @@ Alert exclusions are kept outside the PowerShell script in:
 %LOCALAPPDATA%\ParanoidPlus\ServiceWhitelist.txt
 ```
 
-The file contains one PowerShell wildcard pattern per line, matched against the Windows service name. Blank lines and lines beginning with `#` are ignored. A matching service is **still written to `ServiceInstall.log`**, including the matched whitelist pattern, but it does not produce the suspicious-service popup.
+The file contains one PowerShell wildcard pattern per line, matched against the Windows service name. Blank lines and lines beginning with `#` are ignored. A matching service is skipped entirely: it is not written to `ServiceInstall.log` and does not produce the suspicious-service popup.
 
 The default whitelist contains:
 

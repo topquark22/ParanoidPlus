@@ -53,6 +53,11 @@ foreach ($event in $events) {
         }
     }
 
+    if ($whitelistMatch) {
+        Set-Content -Path $idFile -Value $event.RecordId
+        continue
+    }
+
     if ($servicePath -match '\\Users\\|\\AppData\\|\\Temp\\|\\Downloads\\') {
         $suspicious = $true
         $reasons += 'Service path is in a user-writable location'
