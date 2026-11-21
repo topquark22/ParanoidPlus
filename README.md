@@ -112,6 +112,14 @@ The `-All` switch reports the timestamp of the oldest retained Security event, b
 
 ### Testing the Type 3 alert
 
+A reusable test script is available:
+
+```powershell
+.\test\Test-RemoteLogonAlert.ps1
+```
+
+It uses `net.exe`'s password prompt, so the password is not read or stored by the script.
+
 An authenticated localhost SMB connection can be used for a controlled test.
 
 First remove any existing mapping:
@@ -204,6 +212,14 @@ Changes take effect the next time the service-install logger runs; no task reins
 
 ### Testing the suspicious-service alert
 
+A reusable test script is available for elevated PowerShell:
+
+```powershell
+.\test\Test-ServiceInstallAlert.ps1
+```
+
+It creates a unique temporary service, waits five seconds for the Event 7045 task, and then cleans up automatically.
+
 A harmless test can be performed by copying a signed Windows executable to `%TEMP%` and registering it as a demand-start service. The service does not need to be started.
 
 Run in elevated PowerShell:
@@ -284,4 +300,6 @@ Log-ServiceInstall.ps1
 ServiceWhitelist.txt
 Uninstall.ps1
 README.md
+test\Test-RemoteLogonAlert.ps1
+test\Test-ServiceInstallAlert.ps1
 ```
